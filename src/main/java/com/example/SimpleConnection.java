@@ -10,7 +10,10 @@ package com.example;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 
+import ome.formats.importer.ImportConfig;
 import omero.api.ThumbnailStorePrx;
+import omero.model.Dataset;
+import omero.model.DatasetI;
 import omero.sys.ParametersI;
 
 import omero.gateway.Gateway;
@@ -33,6 +36,14 @@ public class SimpleConnection {
 
     /** Reference to the gateway.*/
     private Gateway gateway;
+
+    public Gateway getGateway() {
+        return gateway;
+    }
+
+    public SecurityContext getCtx() {
+        return ctx;
+    }
 
     /** The security context.*/
     private SecurityContext ctx;
@@ -74,9 +85,24 @@ public class SimpleConnection {
         System.out.println("Connected as " + user.getUserName());
         ctx = new SecurityContext(user.getGroupId());
     }
+
+    /**
+     * Creates a connection, the gateway will take care of the services
+     * life-cycle.
+     *
+     * @param config The arguments used to connect.
+     */
+    public void connect(ImportConfig config)
+            throws Exception
+    {
+        LoginCredentials cred = new LoginCredentials(config.username.toString(), config.password.toString(), config.hostname.toString());
+        ExperimenterData user = gateway.connect(cred);
+        System.out.println("Connected as " + user.getUserName());
+        ctx = new SecurityContext(4);
+    }
     
     /** Makes sure to disconnect to destroy sessions.*/
-    private void disconnect()
+    public void disconnect()
     {
         gateway.disconnect();
     }
@@ -97,11 +123,11 @@ public class SimpleConnection {
         params.acquisitionData();
         BrowseFacility browse = gateway.getFacility(BrowseFacility.class);
         try {
-            ImageData image = browse.getImage(ctx, 1L, params);
+            ImageData image = browse.getImage(ctx, 457L, params);
             PixelsData pixels = image.getDefaultPixels();
             ThumbnailStorePrx store = gateway.getThumbnailService(ctx);
             store.setPixelsId(pixels.getId());
-            System.out.println("Ready to get thumbnail");
+            System.out.println("Ready to get thumbnail " + pixels.getImage().getFormat());
         } catch(NoSuchElementException e) {
             System.out.println("Image:1 not found");
         }
@@ -115,7 +141,7 @@ public class SimpleConnection {
 
     /**
      */
-    public static void main(String[] args) throws Exception {
+    /*public static void main(String[] args) throws Exception {
         SimpleConnection client = new SimpleConnection();
         try {
             client.connect(args);
@@ -123,8 +149,9 @@ public class SimpleConnection {
             // Load the projects/datasets owned by the user currently logged in.
             client.loadProjects();
             client.loadFirstImage();
+            Dataset dataset = new DatasetI();
         } finally {
             client.disconnect();
         }
-    }
+    }*/
 }
